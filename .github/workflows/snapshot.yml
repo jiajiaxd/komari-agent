@@ -53,7 +53,7 @@ jobs:
       - name: Generate snapshot version
         id: version
         run: |
-          VERSION="Snapshot-$(date -u +%y%m%d%H%M)"
+          VERSION="Snapshot-$(date -u +%y%m%d%H%M)-fork"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Snapshot version: ${VERSION}"
 

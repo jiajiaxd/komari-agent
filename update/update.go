@@ -27,8 +27,8 @@ import (
 var ErrRestartRequired = errors.New("update installed; restart required")
 
 var (
-	CurrentVersion string = "0.0.1"
-	Repo           string = "komari-monitor/komari-agent"
+	CurrentVersion string = "1.5.11-fork"
+	Repo           string = "jiajiaxd/komari-agent"
 )
 
 const (
@@ -162,7 +162,7 @@ func parseUpdateTarget(input string) (updateTarget, error) {
 	}
 
 	if strings.HasPrefix(input, snapshotVersionPrefix) {
-		timestamp := strings.TrimPrefix(input, snapshotVersionPrefix)
+		timestamp := strings.TrimSuffix(strings.TrimPrefix(input, snapshotVersionPrefix), "-fork")
 		if len(timestamp) != 10 {
 			return updateTarget{}, fmt.Errorf("invalid snapshot target %q", input)
 		}
@@ -244,7 +244,7 @@ func selectLatestStableRelease(releases []githubRelease, assetName string, targe
 		if err != nil || !target.matches(version) {
 			continue
 		}
-		if release.Prerelease || len(version.Pre) > 0 {
+		if release.Prerelease || (len(version.Pre) > 0 && !(len(version.Pre) == 1 && version.Pre[0].String() == "fork")) {
 			if target.kind != targetExact || len(target.version.Pre) == 0 {
 				continue
 			}

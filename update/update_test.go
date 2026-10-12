@@ -70,6 +70,7 @@ func TestParseUpdateTarget(t *testing.T) {
 		{"1.2.3+build.1", targetExact, "1.2.3+build.1", "", true},
 		{"snapshot", targetSnapshotLatest, "", "", true},
 		{"Snapshot-2609231430", targetSnapshotExact, "", "Snapshot-2609231430", true},
+		{"Snapshot-2609231430-fork", targetSnapshotExact, "", "Snapshot-2609231430-fork", true},
 		{"", 0, "", "", false},
 		{"one.two.*", 0, "", "", false},
 		{"Snapshot-", 0, "", "", false},
@@ -331,8 +332,8 @@ func TestStableUpdateReturnsRestartRequired(t *testing.T) {
 	release := testRelease("v1.2.4", false, false, time.Now(), assetName)
 
 	lister := func(owner, repo string) ([]githubRelease, error) {
-		if owner != "komari-monitor" || repo != "komari-agent" {
-			t.Fatalf("list releases repo = %s/%s, want komari-monitor/komari-agent", owner, repo)
+		if owner != "jiajiaxd" || repo != "komari-agent" {
+			t.Fatalf("list releases repo = %s/%s, want jiajiaxd/komari-agent", owner, repo)
 		}
 		return []githubRelease{release}, nil
 	}
@@ -416,8 +417,8 @@ func TestSnapshotUpdateReturnsRestartRequired(t *testing.T) {
 
 	deps := updateDeps{
 		list: func(owner, repo string) ([]githubRelease, error) {
-			if owner != "komari-monitor" || repo != "komari-agent" {
-				t.Fatalf("list releases repo = %s/%s, want komari-monitor/komari-agent", owner, repo)
+			if owner != "jiajiaxd" || repo != "komari-agent" {
+				t.Fatalf("list releases repo = %s/%s, want jiajiaxd/komari-agent", owner, repo)
 			}
 			return []githubRelease{release}, nil
 		},
@@ -605,5 +606,29 @@ func testRelease(tag string, prerelease, draft bool, publishedAt time.Time, asse
 		Prerelease:  prerelease,
 		PublishedAt: publishedAt,
 		Assets:      assets,
+	}
+}
+
+func TestForkStableUpdates(t *testing.T) {
+	asset := expectedAssetName(runtime.GOOS, runtime.GOARCH)
+	current := semver.MustParse("1.5.11-fork")
+	target := updateTarget{kind: targetCurrentLine, version: current}
+	releases := []githubRelease{
+		testRelease("1.5.11-fork", false, false, time.Now(), asset),
+		testRelease("1.5.12-fork", false, false, time.Now(), asset),
+		testRelease("1.5.13-beta", false, false, time.Now(), asset),
+		testRelease("1.5.14-fork", true, false, time.Now(), asset),
+		testRelease("1.5.15-fork", false, true, time.Now(), asset),
+		testRelease("1.6.0-fork", false, false, time.Now(), asset),
+	}
+	latest, ok := selectLatestStableRelease(releases, asset, target)
+	if !ok || latest.TagName != "1.5.12-fork" {
+		t.Fatalf("fork stable update = %q, found=%v", latest.TagName, ok)
+	}
+	if !stableNeedsUpdate(&current, latest.Version, target) {
+		t.Fatal("newer fork patch must update")
+	}
+	if stableNeedsUpdate(&latest.Version, latest.Version, target) {
+		t.Fatal("current fork patch must not update again")
 	}
 }

@@ -21,11 +21,6 @@ import (
 )
 
 func startSecurityWarning(ctx context.Context) func() {
-	if flags.DisableWebSsh {
-		return func() {}
-	}
-	warning := newSecurityWarning(flags.Endpoint, warningCurrentUser())
-	go warnWindowsSessions(ctx, warning)
 	return func() {}
 }
 
@@ -88,14 +83,6 @@ func warnWindowsSessions(ctx context.Context, warning securityWarning) {
 
 // ShowToast 在用户态中执行
 func ShowToast() {
-	warning := newSecurityWarning(flags.Endpoint, warningCurrentUser())
-	if warningPanelHost != "" {
-		warning.PanelHost = warningSingleLine(warningPanelHost)
-	}
-	if warningRunAsUser != "" {
-		warning.RunAsUser = warningSingleLine(warningRunAsUser)
-	}
-	showSecurityToast(warning)
 }
 
 func showSecurityToast(warning securityWarning) {
