@@ -3,9 +3,19 @@ name: Release Binaries
 on:
   release:
     types: [published]
+  # 由 publish-release.yml 调用（GITHUB_TOKEN 创建的 Release 不会触发 release 事件）
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to build and attach assets to.
+        required: true
+        type: string
 
 permissions:
   contents: write
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
 
 jobs:
   build-and-attach:
@@ -41,7 +51,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
-          VERSION: ${{ github.event.release.tag_name }}
+          VERSION: ${{ env.RELEASE_TAG }}
         run: |
           BINARY_NAME=komari-agent-${{ matrix.goos }}-${{ matrix.goarch }}
           if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -62,5 +72,5 @@ jobs:
           elif [ "${{ matrix.goos }}" = "darwin" ]; then
             true
           fi
-          gh release upload ${{ github.event.release.tag_name }} $BINARY_NAME --repo ${{ github.repository }}
+          gh release upload ${{ env.RELEASE_TAG }} $BINARY_NAME --repo ${{ github.repository }}
         shell: bash

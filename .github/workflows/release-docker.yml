@@ -4,12 +4,20 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  # 由 publish-release.yml 调用（GITHUB_TOKEN 创建的 Release 不会触发 release 事件）
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to build and attach assets to.
+        required: true
+        type: string
 
 permissions:
   contents: read
   packages: write
 
 env:
+  RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -35,7 +43,7 @@ jobs:
           GOOS: linux
           CGO_ENABLED: 0
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${{ env.RELEASE_TAG }}"
           if [ -z "$VERSION" ]; then
             VERSION="${{ github.sha }}"
           fi
@@ -66,7 +74,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ github.event.release.tag_name }}
+            type=raw,value=${{ env.RELEASE_TAG }}
             type=raw,value=latest
 
       - name: Build and push Docker image
