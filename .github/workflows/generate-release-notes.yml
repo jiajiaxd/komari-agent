@@ -23,7 +23,7 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const tag = context.payload.release?.tag_name || core.getInput("tag");
+            const tag = context.payload.release?.tag_name || context.payload.inputs?.tag;
             if (!tag) {
               core.setFailed("No release tag was provided.");
               return;
