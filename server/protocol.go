@@ -26,6 +26,16 @@ func (e *httpStatusError) Error() string {
 	return fmt.Sprintf("status code: %d", e.StatusCode)
 }
 
+// RPCCallError is returned when the server answers with a JSON-RPC error object.
+type RPCCallError struct {
+	Code    int
+	Message string
+}
+
+func (e *RPCCallError) Error() string {
+	return fmt.Sprintf("v2 rpc error %d: %s", e.Code, e.Message)
+}
+
 func parseV2Response(body []byte) (*v2.Response, error) {
 	var rpcResp v2.Response
 	if err := json.Unmarshal(body, &rpcResp); err != nil {
@@ -35,7 +45,7 @@ func parseV2Response(body []byte) (*v2.Response, error) {
 		return nil, fmt.Errorf("invalid v2 JSON-RPC version %q, body: %s", rpcResp.JSONRPC, bodySnippet(body))
 	}
 	if rpcResp.Error != nil {
-		return &rpcResp, fmt.Errorf("v2 rpc error %d: %s", rpcResp.Error.Code, rpcResp.Error.Message)
+		return &rpcResp, &RPCCallError{Code: rpcResp.Error.Code, Message: rpcResp.Error.Message}
 	}
 	return &rpcResp, nil
 }

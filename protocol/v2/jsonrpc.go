@@ -22,6 +22,7 @@ const (
 	MethodAgentStartupConfig       = "agent.startupConfig"
 	MethodAgentStartupConfigResult = "agent.startupConfig.result"
 	MethodAgentSwitchVersion       = "agent.switchVersion"
+	MethodAgentLoginEvent          = "agent.loginEvent"
 )
 
 type Request struct {
@@ -70,6 +71,20 @@ type StartupConfigParams struct {
 
 type SwitchVersionParams struct {
 	Version string `json:"version"`
+}
+
+// LoginEvent describes one successful remote login (SSH or RDP) observed on the host.
+type LoginEvent struct {
+	Protocol   string    `json:"protocol"`
+	Username   string    `json:"username"`
+	SourceIP   string    `json:"source_ip"`
+	SourcePort int       `json:"source_port,omitempty"`
+	AuthMethod string    `json:"auth_method,omitempty"`
+	Time       time.Time `json:"time"`
+}
+
+type LoginEventParams struct {
+	Events []LoginEvent `json:"events"`
 }
 
 // Config is the unredacted, flat effective startup configuration.

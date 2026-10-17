@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/komari-monitor/komari-agent/dnsresolver"
+	"github.com/komari-monitor/komari-agent/loginmon"
 	"github.com/komari-monitor/komari-agent/monitoring/netstatic"
 	monitoring "github.com/komari-monitor/komari-agent/monitoring/unit"
 	"github.com/komari-monitor/komari-agent/server"
@@ -129,6 +130,9 @@ var RootCmd = &cobra.Command{
 			})
 		}
 		go server.DoUploadBasicInfoWorks()
+		if !flags.DisableLoginMonitor {
+			go loginmon.Start(stopCtx, server.PostLoginEvents)
+		}
 		for {
 			server.UpdateBasicInfo()
 			server.EstablishWebSocketConnection(func() {
@@ -192,6 +196,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&flags.ConfigFile, "config", "", "Path to the configuration file")
 	RootCmd.PersistentFlags().BoolVar(&flags.DisableCompression, "disable-compression", false, "Disable v2 gzip/permessage-deflate compression")
 	RootCmd.PersistentFlags().StringVar(&flags.PreferIPVersion, "prefer-ip-version", "", "Prefer IP version for dashboard connections: 4 or 6")
+	RootCmd.PersistentFlags().BoolVar(&flags.DisableLoginMonitor, "disable-login-monitor", false, "Disable SSH/RDP login monitoring")
 	RootCmd.PersistentFlags().ParseErrorsWhitelist.UnknownFlags = true
 }
 
