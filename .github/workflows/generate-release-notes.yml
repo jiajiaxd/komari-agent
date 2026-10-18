@@ -34,6 +34,21 @@ jobs:
               ? context.payload.release
               : (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
 
+            // Compare stable releases with the previous stable release instead of
+            // letting GitHub pick the newest release, which may be a snapshot.
+            const isSnapshotTag = (name) => /^Snapshot-/i.test(name || "");
+            const isStable = (item) => !item.draft && !item.prerelease && !isSnapshotTag(item.tag_name);
+            const timestamp = (item) => Date.parse(item.published_at || item.created_at || "");
+            let previousTag = "";
+            if (isStable(release)) {
+              const releases = await github.paginate(github.rest.repos.listReleases, { owner, repo, per_page: 100 });
+              const currentTime = timestamp(release);
+              previousTag = releases
+                .filter((item) => item.tag_name !== tag && isStable(item))
+                .filter((item) => !Number.isFinite(currentTime) || timestamp(item) < currentTime)
+                .sort((left, right) => timestamp(right) - timestamp(left))[0]?.tag_name || "";
+            }
+
             const generated = await github.request(
               "POST /repos/{owner}/{repo}/releases/generate-notes",
               {
@@ -41,6 +56,7 @@ jobs:
                 repo,
                 tag_name: tag,
                 target_commitish: release.target_commitish || undefined,
+                previous_tag_name: previousTag || undefined,
               },
             );
 
@@ -59,5 +75,5 @@ jobs:
 
             await core.summary
               .addHeading("Release Notes")
-              .addRaw(`Updated release notes for ${tag}.`)
+              .addRaw(`Updated release notes for ${tag}${previousTag ? ` (compared with ${previousTag})` : ""}.`)
               .write();
