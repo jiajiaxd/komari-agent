@@ -23,6 +23,8 @@ const (
 	MethodAgentStartupConfigResult = "agent.startupConfig.result"
 	MethodAgentSwitchVersion       = "agent.switchVersion"
 	MethodAgentLoginEvent          = "agent.loginEvent"
+	MethodAgentSSH                 = "agent.ssh"
+	MethodAgentSSHResult           = "agent.ssh.result"
 )
 
 type Request struct {
@@ -85,6 +87,66 @@ type LoginEvent struct {
 
 type LoginEventParams struct {
 	Events []LoginEvent `json:"events"`
+}
+
+// SSH management actions requested by the panel.
+const (
+	SSHActionGet   = "get"
+	SSHActionApply = "apply"
+)
+
+type SSHRequestParams struct {
+	RequestID string      `json:"request_id"`
+	Action    string      `json:"action"`
+	Changes   *SSHChanges `json:"changes,omitempty"`
+}
+
+// SSHChanges lists the edits of one apply request. Zero values leave the
+// corresponding setting unchanged.
+type SSHChanges struct {
+	AddKeys           []string `json:"add_keys,omitempty"`
+	RemoveKeys        []string `json:"remove_keys,omitempty"` // SHA256 fingerprints
+	Port              int      `json:"port,omitempty"`
+	RootPasswordLogin *bool    `json:"root_password_login,omitempty"`
+}
+
+type SSHAuthorizedKey struct {
+	Type        string `json:"type"`
+	Key         string `json:"key"`
+	Comment     string `json:"comment,omitempty"`
+	Options     string `json:"options,omitempty"`
+	Fingerprint string `json:"fingerprint"`
+}
+
+type SSHState struct {
+	User                   string             `json:"user"`
+	AuthorizedKeysPath     string             `json:"authorized_keys_path"`
+	Keys                   []SSHAuthorizedKey `json:"keys"`
+	ConfigPath             string             `json:"config_path"`
+	Ports                  []int              `json:"ports"`
+	PermitRootLogin        string             `json:"permit_root_login"`
+	PasswordAuthentication bool               `json:"password_authentication"`
+	RootPasswordLogin      bool               `json:"root_password_login"`
+	Service                string             `json:"service,omitempty"`
+}
+
+// SSHCheck is one post-apply verification step.
+type SSHCheck struct {
+	Name   string `json:"name"`
+	OK     bool   `json:"ok"`
+	Detail string `json:"detail,omitempty"`
+}
+
+type SSHResult struct {
+	RequestID  string     `json:"request_id"`
+	OK         bool       `json:"ok"`
+	Error      string     `json:"error,omitempty"`
+	State      *SSHState  `json:"state,omitempty"`
+	Changed    bool       `json:"changed,omitempty"`
+	Restarted  bool       `json:"restarted,omitempty"`
+	RolledBack bool       `json:"rolled_back,omitempty"`
+	Verified   bool       `json:"verified,omitempty"`
+	Checks     []SSHCheck `json:"checks,omitempty"`
 }
 
 // Config is the unredacted, flat effective startup configuration.
