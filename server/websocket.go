@@ -183,7 +183,7 @@ func runV2PullLoop(ctx context.Context, onRestartRequired func()) {
 		pullID := fmt.Sprintf("pull-%d", time.Now().UnixNano())
 		ackIDs := snapshotV2AckEventIDs()
 		payload := v2.NewRequest(pullID, v2.MethodAgentPull, map[string]interface{}{
-			"capabilities":  []string{"exec", "ping", "message", "event", "terminal", "file", "startup_config", "switch_version", "login_event"},
+			"capabilities":  []string{"exec", "ping", "message", "event", "terminal", "file", "startup_config", "switch_version", "login_event", "ssh"},
 			"ack_event_ids": ackIDs,
 		})
 		resp, err := postV2RequestContext(ctx, payload)
@@ -429,6 +429,13 @@ func processV2Event(conn *ws.SafeConn, method string, params interface{}, eventI
 			go switchAgentVersion(p.Version, onRestartRequired)
 			return true
 		}
+	case v2.MethodAgentSSH:
+		var p v2.SSHRequestParams
+		if err := v2.BindParams(params, &p); err == nil && p.RequestID != "" {
+			go handleSSHRequest(p)
+			return true
+		}
+		log.Print("bad v2 ssh params")
 	default:
 		log.Printf("unknown v2 event method %s", method)
 	}
